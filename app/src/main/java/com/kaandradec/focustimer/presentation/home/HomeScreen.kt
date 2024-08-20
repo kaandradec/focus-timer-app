@@ -21,15 +21,19 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.kaandradec.focustimer.R
 import com.kaandradec.focustimer.domain.model.TimerTypeEnum
 import com.kaandradec.focustimer.presentation.components.AutoResizedText
@@ -51,6 +55,15 @@ fun HomeScreen(viewModel: HomeScreenViewModel = hiltViewModel()) {
     val timerTypeState by remember { mutableStateOf(viewModel.timerTypeState) }
     val roundsState by remember { mutableStateOf(viewModel.roundsState) }
     val todayTimeState by remember { mutableStateOf(viewModel.todayTimeState) }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // LaunchedEffect: Se ejecuta una sola vez cuando el composable es lanzado (STARTED)
+    LaunchedEffect(viewModel) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewModel.getTimerSessionByDate()
+        }
+    }
 
     Column(
         modifier = Modifier

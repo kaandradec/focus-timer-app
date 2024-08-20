@@ -9,15 +9,24 @@ import com.kaandradec.focustimer.core.Constants.Companion.ONE_HOUR_IN_MIN
 import com.kaandradec.focustimer.core.Constants.Companion.ONE_MIN_IN_MILLIS
 import com.kaandradec.focustimer.core.Constants.Companion.ONE_MIN_IN_SEC
 import com.kaandradec.focustimer.core.Constants.Companion.ONE_SEC_IN_MILLIS
+import com.kaandradec.focustimer.domain.model.Resource
+import com.kaandradec.focustimer.domain.model.TimerSessionModel
 import com.kaandradec.focustimer.domain.model.TimerTypeEnum
+import com.kaandradec.focustimer.domain.usecase.GetTimerSessionByDateUsecase
+import com.kaandradec.focustimer.domain.usecase.SaveTimerSessionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import javax.inject.Inject
 
 @HiltViewModel
-class HomeScreenViewModel @Inject constructor() : ViewModel() {
+class HomeScreenViewModel @Inject constructor(
+    private val getTimerSessionByDateUseCase: GetTimerSessionByDateUsecase,
+    private val saveTimerSessionUseCase: SaveTimerSessionUseCase
+) : ViewModel() {
     private lateinit var timer: CountDownTimer
 
     private var isTimerActive: Boolean = false
@@ -66,7 +75,7 @@ class HomeScreenViewModel @Inject constructor() : ViewModel() {
 
     fun onCancelTimer(reset: Boolean = false) {
         try {
-//            saveTimerSession()
+            saveTimerSession()
             timer.cancel()
         } catch (_: UninitializedPropertyAccessException) {
 //            Handle better the timer error
@@ -80,7 +89,7 @@ class HomeScreenViewModel @Inject constructor() : ViewModel() {
     private fun onResetTime() {
         if (isTimerActive) {
             onCancelTimer()
-            onStartTimer()
+            //onStartTimer()
         }
     }
 
@@ -104,31 +113,32 @@ class HomeScreenViewModel @Inject constructor() : ViewModel() {
         timer.cancel()
     }
 
-//    fun getTimerSessionByDate() {
-//        getTimerSessionByDateUseCase(date = getCurrentDate()).onEach { result ->
-//            if (result is Resource.Success) {
-//                _roundsState.value = result.data?.round ?: 0
-//                _todayTimeState.value = result.data?.value ?: 0
-//            }
-//        }.launchIn(viewModelScope)
-//    }
-//
-//    private fun saveTimerSession() {
-//        val session = TimerSessionModel(
-//            date = getCurrentDate(),
-//            value = _sessionTimerValue
-//        )
-//        saveTimerSessionUseCase(timerSessionModel = session).onEach { result ->
-//            when (result) {
-//                is Resource.Success -> {
-//                    _sessionTimerValue = 0
-//                }
-//
-//                is Resource.Loading -> {}
-//                is Resource.Error -> {}
-//            }
-//        }.launchIn(viewModelScope)
-//    }
+    // Flow es un stream de datos que se puede observar
+    fun getTimerSessionByDate() {
+        getTimerSessionByDateUseCase(date = getCurrentDate()).onEach { result ->
+            if (result is Resource.Success) {
+                _roundsState.value = result.data?.round ?: 0
+                _todayTimeState.value = result.data?.value ?: 0
+            }
+        }.launchIn(viewModelScope) // Se ejecuta cuando el ViewModel esta activo
+    }
+
+    private fun saveTimerSession() {
+        val session = TimerSessionModel(
+            date = getCurrentDate(),
+            value = _sessionTimerValue
+        )
+        saveTimerSessionUseCase(timerSessionModel = session).onEach { result ->
+            when (result) {
+                is Resource.Success -> {
+                    _sessionTimerValue = 0
+                }
+
+                is Resource.Loading -> {}
+                is Resource.Error -> {}
+            }
+        }.launchIn(viewModelScope)
+    }
 
     @SuppressLint("SimpleDateFormat")
     private fun getCurrentDate(): String {
